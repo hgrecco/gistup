@@ -3,6 +3,7 @@ import importlib.util
 import os
 import json
 import shutil
+import sys
 import uuid
 
 import appdirs
@@ -45,8 +46,35 @@ def download(remote, local):
         raise Exception('Could not download %s' % remote)
 
 
+def from_file(local, mod=None):
+    """Load a module from file.
+
+    Parameters
+    ----------
+    local : str
+        File path
+
+    mod : str, optional
+        Name of the module. (Default: basename of the file)
+
+    Return
+    ------
+    module
+        Loaded module
+    """
+    mod = mod or os.path.splitext(os.path.basename(local))[0]
+
+    spec = importlib.util.spec_from_file_location(mod, local)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    sys.modules[mod] = module
+
+    return module
+
+
 def from_url(remote, force_download=False, mod=None):
-    """Load a module from a URL specification.
+    """Load a module from URL.
 
     Parameters
     ----------
@@ -78,10 +106,7 @@ def from_url(remote, force_download=False, mod=None):
 
     mod = mod or os.path.splitext(os.path.basename(remote))[0]
 
-    spec = importlib.util.spec_from_file_location(mod, local)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    return from_file(local, mod)
 
 
 def from_github(user, repo, mod, branch_commit='master', force_download=False):
